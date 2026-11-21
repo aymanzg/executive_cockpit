@@ -276,6 +276,6 @@ add_to_apps_screen = [
 
 scheduler_events = {
 	"cron": {
-		"*/15 * * * *": ["executive_cockpit.tasks.warm_cache"],
+		"*/15 * * * *": ["executive_cockpit.tasks.enqueue_warm"],
 	},
 }

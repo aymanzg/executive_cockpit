@@ -164,3 +164,9 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 @keyframes progress { 0% { right: -35%; } 100% { right: 100%; } }
 @media (max-width: 760px) { .vs-toast { bottom: 88px; } }
 @media (prefers-reduced-motion: reduce) { .topbar-progress::before, .vs-spinner { animation-duration: 3s; } }
+
+/* HR section tabs */
+.hr-tabs { align-self: flex-start; max-width: 100%; overflow-x: auto; }
+.hr-tabs button { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 15px; padding: 8px 18px; }
+.tab-badge { font-size: 12px; min-width: 20px; padding: 1px 6px; border-radius: 999px; background: var(--line); color: var(--ink); font-weight: 600; text-align: center; }
+.hr-tabs button.on .tab-badge { background: var(--s1); color: #fff; }

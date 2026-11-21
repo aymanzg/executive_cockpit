@@ -71,13 +71,13 @@ def _redis():
 	return frappe.cache() if callable(frappe.cache) else frappe.cache
 
 
-def _cached(name, F, compute, refresh=False):
-	ttl = _settings().cache_minutes * 60
+def _cached(name, F, compute, refresh=False, ttl=None):
+	ttl = ttl or _settings().cache_minutes * 60
 	raw = json.dumps([name, {k: str(v) for k, v in F.items() if k != "months"}], sort_keys=True)
 	key = CACHE_PREFIX + hashlib.md5(raw.encode()).hexdigest()
 	r = _redis()
 	if ttl and not cint(refresh):
-		hit = r.get_value(key)
+		hit = r.get_value(key, expires=True)
 		if hit is not None:
 			return hit
 	data = compute(F)
@@ -433,18 +433,45 @@ def _aging(balances, as_of):
 # ---------------------------------------------------------------------------
 
 
+SEEN_KEY = "executive_cockpit:last_seen"
+SEEN_WINDOW = 2 * 3600  # keep pre-computing for 2 hours after the dashboard was last opened
+
+
+def _mark_seen():
+	"""Remember the dashboard is in use. After an idle spell, start pre-computing the
+	other sections right away so they are ready by the time the user clicks them."""
+	r = _redis()
+	idle = not r.get_value(SEEN_KEY, expires=True)
+	r.set_value(SEEN_KEY, 1, expires_in_sec=SEEN_WINDOW)
+	if idle:
+		from executive_cockpit.tasks import enqueue_warm
+
+		enqueue_warm(force=True)
+
+
+def _busiest_company():
+	"""Company with the most ledger entries (used when no default company is set).
+	It scans the whole ledger, so it is memoised for 6 hours."""
+	r = _redis()
+	key = "executive_cockpit:busiest_company"
+	hit = r.get_value(key, expires=True)
+	if hit is None:
+		row = frappe.db.sql(
+			"""select company from `tabGL Entry` where is_cancelled=0
+			group by company order by count(*) desc limit 1"""
+		)
+		hit = row[0][0] if row else ""
+		r.set_value(key, hit, expires_in_sec=6 * 3600)
+	return hit
+
+
 @frappe.whitelist()
 def get_boot():
 	_guard()
 	s = _settings()
 	companies = frappe.get_all("Company", fields=["name", "abbr", "default_currency"], order_by="name")
-	default = s.default_company
-	if not default:
-		r = frappe.db.sql(
-			"""select company from `tabGL Entry` where is_cancelled=0
-			group by company order by count(*) desc limit 1"""
-		)
-		default = r[0][0] if r else (companies[0].name if companies else None)
+	default = s.default_company or _busiest_company() or (companies[0].name if companies else None)
+	_mark_seen()
 	return {
 		"user": frappe.session.user,
 		"sections": allowed_sections(),
@@ -930,16 +957,19 @@ def get_reps(company, year=None, document_type="Sales Invoice", amount="net", in
 	_guard("reps")
 	if not company or not frappe.db.exists("Company", company):
 		frappe.throw("الشركة غير موجودة")
-	year = cint(year) or getdate(today()).year
-	F = frappe._dict(
+	F = _reps_filters(company, year, document_type, amount, include_returns, mode)
+	return _cached("reps", F, _reps_view, refresh)
+
+
+def _reps_filters(company, year=None, document_type="Sales Invoice", amount="net", include_returns=1, mode="smart"):
+	return frappe._dict(
 		company=company,
-		year=year,
+		year=cint(year) or getdate(today()).year,
 		document_type=document_type if document_type in REP_DOCTYPES else "Sales Invoice",
 		amount=amount if amount in AMOUNT_FIELDS else "net",
 		include_returns=cint(include_returns),
 		mode=mode if mode in REP_MODES else "smart",
 	)
-	return _cached("reps", F, _reps_view, refresh)
 
 
 def _reps_view(F):
@@ -1262,7 +1292,10 @@ def get_hr(company, period="ytd", as_of=None, from_date=None, to_date=None, refr
 def _custody_accounts(F):
 	parent = _settings().custody_parent_account
 	if parent and frappe.db.get_value("Account", parent, "company") == F.company:
-		lft, rgt = frappe.db.get_value("Account", parent, ["lft", "rgt"])
+		lft, rgt, is_group, name = frappe.db.get_value("Account", parent, ["lft", "rgt", "is_group", "account_name"])
+		if not is_group:
+			# a single custody account, usually tracked per employee (party) — see _hr_view
+			return [frappe._dict(name=parent, account_name=name)]
 		return frappe.get_all(
 			"Account",
 			filters={"lft": [">", lft], "rgt": ["<", rgt], "is_group": 0, "company": F.company},
@@ -1337,20 +1370,32 @@ def _hr_view(F):
 	accounts = _custody_accounts(F)
 	custody = []
 	if accounts:
+		# One line per account and party: a custody account held per employee (party)
+		# shows each employee's balance; accounts without parties show one line.
 		rows = frappe.db.sql(
-			"""select account, sum(debit - credit) bal, max(posting_date) last_date
+			"""select account, ifnull(party_type, '') party_type, ifnull(party, '') party,
+				sum(debit - credit) bal, max(posting_date) last_date
 			from `tabGL Entry` where is_cancelled=0 and company=%(company)s and posting_date <= %(to)s
-			and account in %(accounts)s group by account""",
+			and account in %(accounts)s group by account, ifnull(party_type, ''), ifnull(party, '')""",
 			_p(F, accounts=tuple(a.name for a in accounts)),
 			as_dict=True,
 		)
 		names = {a.name: a.account_name for a in accounts}
+		holders = [r.party for r in rows if r.party_type == "Employee" and r.party]
+		emp_names = dict(frappe.get_all("Employee", filters={"name": ["in", holders]}, fields=["name", "employee_name"], as_list=True)) if holders else {}
 		for r in rows:
 			if abs(flt(r.bal)) < 1:
 				continue
+			label = names.get(r.account, r.account)
+			if r.party:
+				label = emp_names.get(r.party) or r.party
+				if len(accounts) > 1:
+					label = f"{label} · {names.get(r.account, r.account)}"
 			custody.append({
 				"account": r.account,
-				"label": names.get(r.account, r.account),
+				"party_type": r.party_type,
+				"party": r.party,
+				"label": label,
 				"balance": flt(r.bal, 2),
 				"last_date": str(r.last_date) if r.last_date else None,
 				"idle_days": (F.to - getdate(r.last_date)).days if r.last_date else None,
@@ -1389,8 +1434,12 @@ def _hr_view(F):
 		},
 		"custody": {
 			"accounts": custody,
-			"total": flt(sum(c["balance"] for c in custody), 2),
-			"count": len(custody),
+			# debit balances = custody still held by employees; credit balances = spent
+			# beyond the custody, i.e. owed back to the employee. Kept apart so they don't net off.
+			"total": flt(sum(c["balance"] for c in custody if c["balance"] > 0), 2),
+			"count": sum(1 for c in custody if c["balance"] > 0),
+			"owed": flt(-sum(c["balance"] for c in custody if c["balance"] < 0), 2),
+			"owed_count": sum(1 for c in custody if c["balance"] < 0),
 		},
 		"expense_claims": {
 			"unpaid_count": ec_n,

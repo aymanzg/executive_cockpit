@@ -96,7 +96,7 @@ def _vat_accounts(company):
 	the month-end journal moves them into. Memoised in Redis for an hour."""
 	r = _core()._redis()
 	key = f"executive_cockpit:vat_accounts:{company}"
-	hit = r.get_value(key)
+	hit = r.get_value(key, expires=True)
 	if hit:
 		return frappe._dict(hit)
 	tax = frappe.db.sql(
@@ -534,11 +534,23 @@ def _get(company, year, period_type, num, refresh):
 	return _core()._cached("vat", F, _compute, refresh)
 
 
-def _years(company):
-	ys = frappe.db.sql(
-		"select distinct year(posting_date) from `tabGL Entry` where company=%s and is_cancelled=0 order by 1 desc", company
-	)
-	return [cint(y[0]) for y in ys if y[0]]
+def _years(company, refresh=False):
+	"""Years that have ledger entries. The scan covers the whole ledger, so it is memoised
+	for 6 hours (and refreshed by the warm job) instead of running on every request."""
+	r = _core()._redis()
+	key = f"executive_cockpit:vat_years:{company}"
+	ys = None if refresh else r.get_value(key, expires=True)
+	if ys is None:
+		ys = [
+			cint(y[0])
+			for y in frappe.db.sql(
+				"select distinct year(posting_date) from `tabGL Entry` where company=%s and is_cancelled=0 order by 1 desc",
+				company,
+			)
+			if y[0]
+		]
+		r.set_value(key, ys, expires_in_sec=6 * 3600)
+	return ys
 
 
 @frappe.whitelist()

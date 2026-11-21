@@ -5,6 +5,7 @@ import { describe, it, expect, beforeAll, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import fs from 'node:fs'
 import path from 'node:path'
+import { createRouter, createMemoryHistory } from 'vue-router'
 
 const FIXTURE = path.resolve(__dirname, 'fixture.json')
 const hasFixture = fs.existsSync(FIXTURE)
@@ -38,8 +39,11 @@ describe.skipIf(!hasFixture)('dashboard views render with real data', () => {
       const warnings = []
       const errors = []
       const Comp = (await import(`../src/views/${name}.vue`)).default
+      const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/:p(.*)*', component: { template: '<div />' } }] })
+      await router.push('/' + name.toLowerCase())
       const wrapper = mount(Comp, {
         global: {
+          plugins: [router],
           stubs: { EChart: { props: ['option'], template: '<div class="echart-stub"></div>' }, 'router-link': { template: '<a><slot /></a>' } },
           config: {
             warnHandler: (msg) => warnings.push(msg),
@@ -48,6 +52,16 @@ describe.skipIf(!hasFixture)('dashboard views render with real data', () => {
         },
       })
       await flushPromises()
+      // views with top tabs: open every tab and check it renders too
+      const tabs = wrapper.findAll('[role="tab"][aria-controls]')
+      for (const t of tabs) {
+        await t.trigger('click')
+        await flushPromises()
+        expect(t.attributes('aria-selected')).toBe('true')
+        expect(wrapper.find('[role="tabpanel"] .card').exists()).toBe(true)
+        // only the selected tab's panel is shown
+        expect(wrapper.findAll('[role="tabpanel"]').map((p) => p.attributes('id'))).toEqual([t.attributes('aria-controls')])
+      }
       expect(errors).toEqual([])
       expect(warnings).toEqual([])
       expect(wrapper.find('.card').exists()).toBe(true)
