@@ -305,13 +305,16 @@ def _unbilled_orders(F):
 	return cint(r[0]), flt(r[1], 2)
 
 
+# A salary slip belongs to the month its pay period ends in: a 26 Jan – 25 Feb
+# period is February's payroll (the company ran 26–25 cycles before moving to
+# calendar months in March 2026).
 def _payroll_monthly(F):
 	return frappe.db.sql(
-		"""select date_format(start_date, '%%Y-%%m') m, sum(base_net_pay), sum(base_gross_pay), count(*)
+		"""select date_format(end_date, '%%Y-%%m') m, sum(base_net_pay), sum(base_gross_pay), count(*)
 		from `tabSalary Slip`
-		where docstatus=1 and company=%(company)s and start_date between %(trend_from)s and %(to)s
+		where docstatus=1 and company=%(company)s and end_date between %(trend_from)s and %(to_month_end)s
 		group by m""",
-		_p(F),
+		_p(F, to_month_end=get_last_day(F.to)),
 	)
 
 
@@ -319,10 +322,10 @@ def _latest_payroll(F):
 	# Latest month with a real payroll run (at least half the usual slip count),
 	# so a month holding a few stray slips is not reported as the payroll.
 	runs = frappe.db.sql(
-		"""select date_format(start_date, '%%Y-%%m-01') m, count(*) n from `tabSalary Slip`
-		where docstatus=1 and company=%(company)s and start_date <= %(to)s
-		and start_date >= %(since)s group by m order by m""",
-		_p(F, since=add_months(F.to, -24)),
+		"""select date_format(end_date, '%%Y-%%m-01') m, count(*) n from `tabSalary Slip`
+		where docstatus=1 and company=%(company)s and end_date <= %(to_month_end)s
+		and end_date >= %(since)s group by m order by m""",
+		_p(F, since=add_months(F.to, -24), to_month_end=get_last_day(F.to)),
 	)
 	if not runs:
 		return None
@@ -332,13 +335,13 @@ def _latest_payroll(F):
 	row = frappe.db.sql(
 		"""select sum(base_net_pay), sum(base_gross_pay), count(*) from `tabSalary Slip`
 		where docstatus=1 and company=%(company)s
-		and start_date between %(m_from)s and %(m_to)s""",
+		and end_date between %(m_from)s and %(m_to)s""",
 		_p(F, m_from=latest, m_to=get_last_day(latest)),
 	)[0]
 	prev = get_first_day(add_months(latest, -1))
 	prev_net = _scalar(
 		"""select sum(base_net_pay) from `tabSalary Slip`
-		where docstatus=1 and company=%(company)s and start_date between %(m_from)s and %(m_to)s""",
+		where docstatus=1 and company=%(company)s and end_date between %(m_from)s and %(m_to)s""",
 		_p(F, m_from=prev, m_to=get_last_day(prev)),
 	)
 	months_behind = (F.to.year - latest.year) * 12 + (F.to.month - latest.month)
@@ -1321,7 +1324,7 @@ def _hr_view(F):
 		depts = frappe.db.sql(
 			"""select ifnull(department, 'بدون إدارة') department, count(*) n, sum(base_net_pay) v
 			from `tabSalary Slip` where docstatus=1 and company=%(company)s
-			and start_date between %(m_from)s and %(m_to)s
+			and end_date between %(m_from)s and %(m_to)s
 			group by department order by v desc""",
 			_p(F, m_from=m_from, m_to=get_last_day(m_from)),
 			as_dict=True,
