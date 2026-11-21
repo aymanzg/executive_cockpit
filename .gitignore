@@ -5,3 +5,6 @@
 tags
 node_modules
 __pycache__
+executive_cockpit/public/frontend
+executive_cockpit/www/executive.html
+frontend/tests/fixture.json

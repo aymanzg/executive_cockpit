@@ -1,0 +1,24 @@
+{
+  "name": "executive-cockpit-ui",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "test": "vitest run",
+    "build": "vite build && cp ../executive_cockpit/public/frontend/index.html ../executive_cockpit/www/executive.html"
+  },
+  "dependencies": {
+    "@fontsource/ibm-plex-sans-arabic": "5.1.1",
+    "echarts": "5.5.1",
+    "vue": "3.5.13",
+    "vue-router": "4.5.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "5.2.1",
+    "@vue/test-utils": "2.4.6",
+    "happy-dom": "15.11.7",
+    "vite": "5.4.11",
+    "vitest": "2.1.8"
+  }
+}

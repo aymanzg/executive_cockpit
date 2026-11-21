@@ -1,0 +1,103 @@
+{
+ "actions": [],
+ "creation": "2026-11-21 16:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "full_name",
+  "overview",
+  "sales",
+  "reps",
+  "collection",
+  "profit",
+  "vat",
+  "hr"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "المستخدم",
+   "options": "User",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "label": "الاسم",
+   "fetch_from": "user.full_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "overview",
+   "fieldtype": "Check",
+   "label": "النظرة العامة",
+   "in_list_view": 1,
+   "columns": 1,
+   "default": "1"
+  },
+  {
+   "fieldname": "sales",
+   "fieldtype": "Check",
+   "label": "المبيعات",
+   "in_list_view": 1,
+   "columns": 1,
+   "default": "0"
+  },
+  {
+   "fieldname": "reps",
+   "fieldtype": "Check",
+   "label": "المندوبون",
+   "in_list_view": 1,
+   "columns": 1,
+   "default": "0"
+  },
+  {
+   "fieldname": "collection",
+   "fieldtype": "Check",
+   "label": "التحصيل",
+   "in_list_view": 1,
+   "columns": 1,
+   "default": "0"
+  },
+  {
+   "fieldname": "profit",
+   "fieldtype": "Check",
+   "label": "الربحية",
+   "in_list_view": 1,
+   "columns": 1,
+   "default": "0"
+  },
+  {
+   "fieldname": "vat",
+   "fieldtype": "Check",
+   "label": "الضريبة",
+   "in_list_view": 1,
+   "columns": 1,
+   "default": "0"
+  },
+  {
+   "fieldname": "hr",
+   "fieldtype": "Check",
+   "label": "الموظفون",
+   "in_list_view": 1,
+   "columns": 1,
+   "default": "0"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-11-21 16:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Executive Cockpit",
+ "name": "Executive Cockpit User",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

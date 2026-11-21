@@ -253,3 +253,29 @@ app_license = "mit"
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
 
+
+# ---------------------------------------------------------------------------
+# Executive Cockpit
+# ---------------------------------------------------------------------------
+
+after_install = "executive_cockpit.install.after_install"
+
+website_route_rules = [
+	{"from_route": "/executive/<path:app_path>", "to_route": "executive"},
+]
+
+add_to_apps_screen = [
+	{
+		"name": "executive_cockpit",
+		"logo": "/assets/executive_cockpit/logo.svg",
+		"title": "لوحة القيادة",
+		"route": "/executive",
+		"has_permission": "executive_cockpit.api.has_app_permission",
+	}
+]
+
+scheduler_events = {
+	"cron": {
+		"*/15 * * * *": ["executive_cockpit.tasks.warm_cache"],
+	},
+}

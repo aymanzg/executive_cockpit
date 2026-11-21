@@ -1,0 +1,81 @@
+{
+ "actions": [],
+ "creation": "2026-11-18 16:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "default_company",
+  "custody_parent_account",
+  "column_break_1",
+  "dso_target",
+  "cache_minutes",
+  "access_section",
+  "allowed_users"
+ ],
+ "fields": [
+  {
+   "fieldname": "default_company",
+   "fieldtype": "Link",
+   "label": "Default Company",
+   "options": "Company"
+  },
+  {
+   "description": "Group account whose child accounts are employee custodies (العهد). If empty, accounts whose name contains عهد are used.",
+   "fieldname": "custody_parent_account",
+   "fieldtype": "Link",
+   "label": "Custody Parent Account",
+   "options": "Account"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "60",
+   "fieldname": "dso_target",
+   "fieldtype": "Int",
+   "label": "DSO Target (days)"
+  },
+  {
+   "default": "15",
+   "fieldname": "cache_minutes",
+   "fieldtype": "Int",
+   "label": "Cache Duration (minutes)"
+  },
+  {
+   "fieldname": "access_section",
+   "fieldtype": "Section Break",
+   "label": "صلاحيات الدخول",
+   "description": "من يدخل لوحة القيادة وما الأقسام التي يراها كل مستخدم. إذا كان الجدول فارغاً يدخل كل من لديه دور Executive Dashboard أو System Manager ويرى كل الأقسام. بمجرد إضافة مستخدم واحد يصبح الدخول لمن في الجدول فقط (وAdministrator دائماً)."
+  },
+  {
+   "fieldname": "allowed_users",
+   "fieldtype": "Table",
+   "label": "المستخدمون المسموح لهم",
+   "options": "Executive Cockpit User"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-11-21 16:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Executive Cockpit",
+ "name": "Executive Cockpit Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

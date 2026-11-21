@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0F5F73" />
+    <link rel="icon" href="/assets/executive_cockpit/logo.svg" />
+    <title>لوحة القيادة التنفيذية</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>
+      window.csrf_token = '{{ csrf_token }}'
+      window.site_name = '{{ site_name }}'
+    </script>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
