@@ -24,7 +24,7 @@
       <input v-model="f.include_returns" type="checkbox" />
       <span>خصم المرتجعات</span>
     </label>
-    <button type="button" class="btn no-print" :disabled="!data || exporting" @click="exportExcel">{{ exporting ? 'جارٍ التصدير…' : 'تصدير Excel' }}</button>
+    <button type="button" class="btn no-print" :disabled="!data || !!exporting" @click="exportExcel">{{ exporting ? 'جارٍ التصدير…' : 'تصدير Excel' }}</button>
     <span v-if="exportError" class="lbl neg" role="alert">{{ exportError }}</span>
   </section>
 

@@ -18,7 +18,7 @@
     </label>
     <div class="exports">
       <button v-for="e in EXPORTS" :key="e.kind" type="button" class="btn" :class="{ primary: e.kind === 'all' }"
-        :disabled="!data || exporting" @click="exportExcel(e.kind)">{{ exporting === e.kind ? 'جارٍ التصدير…' : e.label }}</button>
+        :disabled="!data || !!exporting" @click="exportExcel(e.kind)">{{ exporting === e.kind ? 'جارٍ التصدير…' : e.label }}</button>
     </div>
     <span v-if="exportError" class="lbl neg" role="alert">{{ exportError }}</span>
   </section>

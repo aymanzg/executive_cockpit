@@ -52,6 +52,8 @@ describe.skipIf(!hasFixture)('dashboard views render with real data', () => {
         },
       })
       await flushPromises()
+      // export buttons must be clickable once data is loaded
+      for (const b of wrapper.findAll('.exports button, button.no-print')) expect(b.attributes('disabled')).toBeUndefined()
       // views with top tabs: open every tab and check it renders too
       const tabs = wrapper.findAll('[role="tab"][aria-controls]')
       for (const t of tabs) {
