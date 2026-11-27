@@ -493,6 +493,7 @@ def _vat_full(F):
 			"from": str(F["from"]),
 			"to": str(F.to),
 			"company_vat": frappe.db.get_value("Company", F.company, "tax_id") or "",
+			"company_name": frappe.db.get_value("Company", F.company, "company_name") or F.company,
 		},
 		"accounts": acc,
 		"boxes": boxes,

@@ -1,4 +1,5 @@
 <template>
+  <div class="vat-screen" style="display: contents">
   <section class="card repfilters" aria-label="الفترة الضريبية">
     <label class="field">
       <span class="lbl">السنة</span>
@@ -17,6 +18,7 @@
       </select>
     </label>
     <div class="exports">
+      <button type="button" class="btn" :disabled="!data" @click="printForm">طباعة الإقرار</button>
       <button v-for="e in EXPORTS" :key="e.kind" type="button" class="btn" :class="{ primary: e.kind === 'all' }"
         :disabled="!data || !!exporting" @click="exportExcel(e.kind)">{{ exporting === e.kind ? 'جارٍ التصدير…' : e.label }}</button>
     </div>
@@ -217,6 +219,8 @@
       </section>
     </template>
   </ViewState>
+  </div>
+  <VatPrintForm v-if="data" class="vat-print" :d="data" :printed-by="store.boot?.full_name || ''" />
 </template>
 
 <script setup>
@@ -225,6 +229,7 @@ import { call, download } from '../api'
 import { store } from '../store'
 import KpiCard from '../components/KpiCard.vue'
 import ViewState from '../components/ViewState.vue'
+import VatPrintForm from '../components/VatPrintForm.vue'
 import { int, money2, monthName, deskUrl } from '../format'
 
 const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
@@ -377,6 +382,11 @@ const pageRows = computed(() => filtered.value.slice((reg.page - 1) * PAGE, reg.
 const sumOf = (k) => filtered.value.reduce((s, r) => s + Math.round(r[k] * 100), 0) / 100
 const docUrl = (r) => deskUrl(`${DOC_SLUG[r.doctype] || r.doctype.toLowerCase().replace(/ /g, '-')}/${encodeURIComponent(r.name)}`)
 
+// ---- print form (only the form is printed; see the unscoped print styles below)
+function printForm() {
+  window.print()
+}
+
 // ---- Excel (normal browser download; the server builds and names the file)
 const exporting = ref('')
 const exportError = ref('')
@@ -449,5 +459,16 @@ function exportExcel(kind) {
 @media (max-width: 640px) {
   .exports { margin-inline-start: 0; width: 100%; }
   .search { min-width: 0; max-width: none; width: 100%; }
+}
+</style>
+
+<style>
+.vat-print { display: none; }
+@media print {
+  @page { size: A4; margin: 12mm; }
+  .vat-screen { display: none !important; }
+  .vat-print { display: block !important; }
+  body:has(.vat-print) .topbar, body:has(.vat-print) .footer { display: none !important; }
+  body:has(.vat-print), body:has(.vat-print) .main { background: #fff !important; }
 }
 </style>
