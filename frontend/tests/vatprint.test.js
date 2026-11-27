@@ -20,5 +20,6 @@ describe.skipIf(!hasFixture)('VAT print form', () => {
     expect(text).toContain('اعتمده (المدير العام)')
     expect(text).toContain('Tester')
     expect(w.findAll('.vp-sum b').length).toBe(3)
+    if (process.env.VP_PREVIEW) fs.writeFileSync(process.env.VP_PREVIEW, w.html())
   })
 })
